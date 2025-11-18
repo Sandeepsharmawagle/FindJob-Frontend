@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 import MainLayout from '../layouts/MainLayout';
 import { Upload, FileText, CheckCircle, AlertCircle, ArrowLeft, Send, Loader, X, Mail, Phone } from 'lucide-react';
 
@@ -24,7 +24,7 @@ const ApplyForm = () => {
 
   const fetchJobDetails = async () => {
     try {
-      const response = await axios.get(`/jobs/${jobId}`);
+      const response = await api.get(`/jobs/${jobId}`);
       setJob(response.data);
     } catch (error) {
       console.error('Error fetching job details:', error);
@@ -83,11 +83,10 @@ const ApplyForm = () => {
     }
     
     try {
-      await axios.post('/applications', formData, {
+      await api.post('/applications', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
-        },
-        withCredentials: true
+        }
       });
       
       setSuccess(true);
@@ -95,6 +94,8 @@ const ApplyForm = () => {
         navigate('/dashboard/user');
       }, 2000);
     } catch (err) {
+      console.error('Application submission error:', err);
+      console.error('Error response:', err.response?.data);
       setError(err.response?.data?.message || 'Failed to submit application');
     } finally {
       setLoading(false);
