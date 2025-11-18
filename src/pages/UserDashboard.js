@@ -22,9 +22,14 @@ const UserDashboard = () => {
       return;
     }
     
+    const fetchData = async () => {
+      setLoading(true);
+      await Promise.all([fetchApplications(), fetchJobs()]);
+      setLoading(false);
+    };
+    
     const timer = setTimeout(() => {
-      fetchApplications();
-      fetchJobs();
+      fetchData();
     }, 100);
     
     return () => clearTimeout(timer);
@@ -40,7 +45,6 @@ const UserDashboard = () => {
 
   const fetchApplications = async () => {
     try {
-      setLoading(true);
       setError('');
       
       const response = await api.get('/applications/');
@@ -49,6 +53,7 @@ const UserDashboard = () => {
       setFilteredApplications(response.data);
     } catch (error) {
       console.error('Error fetching applications:', error);
+      console.error('Error details:', error.response?.data);
       
       if (error.response?.status === 401) {
         setError('Session expired. Please log in again.');
@@ -57,7 +62,8 @@ const UserDashboard = () => {
           navigate('/login');
         }, 2000);
       } else {
-        setError('Failed to fetch applications');
+        const errorMsg = error.response?.data?.message || error.message || 'Failed to fetch applications';
+        setError(`Error loading applications: ${errorMsg}`);
       }
     } finally {
       setLoading(false);
@@ -71,6 +77,8 @@ const UserDashboard = () => {
       setJobs(response.data);
     } catch (error) {
       console.error('Error fetching jobs:', error);
+      console.error('Jobs error details:', error.response?.data);
+      // Don't show error for jobs, just log it - applications are more critical
     }
   };
 
