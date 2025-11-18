@@ -51,23 +51,32 @@ const EmployerDashboard = () => {
     return () => clearTimeout(timer);
   }, [user, navigate]);
 
-  const fetchEmployerData = async () => {
-    try {
-      const config = { withCredentials: true, headers: { 'Content-Type': 'application/json' } };
-      const [jobsRes, applicationsRes] = await Promise.all([
-        axios.get('/employer/jobs', config),
-        axios.get('/employer/applications', config)
-      ]);
-      
-      setJobs(jobsRes.data);
-      setApplications(applicationsRes.data);
-      setError('');
-      setLoading(false);
-    } catch (error) {
-      setError('Failed to fetch dashboard data');
-      setLoading(false);
+ const fetchEmployerData = async () => {
+  try {
+    setLoading(true);
+    setError('');
+    
+    // No need for custom config - AuthContext already sets Authorization header
+    const [jobsRes, applicationsRes] = await Promise.all([
+      axios.get('/employer/jobs'),
+      axios.get('/employer/applications')
+    ]);
+    
+    setJobs(jobsRes.data);
+    setApplications(applicationsRes.data);
+  } catch (error) {
+    console.error('Error fetching employer data:', error);
+    setError(error.response?.data?.message || 'Failed to load dashboard data');
+    
+    if (error.response?.status === 401) {
+      logout();
+      navigate('/login');
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const handleUpdateStatus = async (applicationId, status) => {
     try {
