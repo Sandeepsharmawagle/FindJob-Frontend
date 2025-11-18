@@ -35,37 +35,33 @@ const UserDashboard = () => {
     }
   }, [filterStatus, applications]);
 
-  const fetchApplications = async (retryCount = 0) => {
-    try {
-      const config = { 
-        withCredentials: true,
-        headers: { 'Content-Type': 'application/json' }
-      };
-      
-      const response = await axios.get('/applications/', config);
-      setApplications(response.data);
-      setFilteredApplications(response.data);
-      setError('');
-      setLoading(false);
-    } catch (error) {
-      if (retryCount < 3 && (error.code === 'ECONNABORTED' || error.message.includes('Network Error'))) {
-        setTimeout(() => fetchApplications(retryCount + 1), 1000 * (retryCount + 1));
-        return;
-      }
-      
-      let errorMessage = 'Failed to fetch applications';
-      if (error.response?.status === 401) {
-        errorMessage = 'Session expired. Please log in again.';
-        setTimeout(() => {
-          logout();
-          navigate('/login');
-        }, 2000);
-      }
-      
-      setError(errorMessage);
-      setLoading(false);
+  const fetchApplications = async () => {
+  try {
+    setLoading(true);
+    setError('');
+    
+    // Remove withCredentials config - AuthContext handles authentication
+    const response = await axios.get('/applications/');
+    
+    setApplications(response.data);
+    setFilteredApplications(response.data);
+  } catch (error) {
+    console.error('Error fetching applications:', error);
+    
+    if (error.response?.status === 401) {
+      setError('Session expired. Please log in again.');
+      setTimeout(() => {
+        logout();
+        navigate('/login');
+      }, 2000);
+    } else {
+      setError('Failed to fetch applications');
     }
-  };
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   const getStatusColor = (status) => {
     const colors = {

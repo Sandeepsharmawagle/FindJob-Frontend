@@ -15,15 +15,16 @@ export const AuthProvider = ({ children }) => {
 
   // Configure axios defaults
   useEffect(() => {
-    axios.defaults.baseURL = API_BASE_URL;
-    
-    // Set token from localStorage if exists
-    const token = localStorage.getItem('token');
-    if (token) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-      console.log('Token loaded from localStorage');
-    }
-  }, [API_BASE_URL]);
+  axios.defaults.baseURL = API_BASE_URL;
+  axios.defaults.withCredentials = true;  // Add this
+  
+  const token = localStorage.getItem('token');
+  if (token) {
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    console.log('Token loaded from localStorage');
+  }
+}, [API_BASE_URL]);
+
 
   // Check if user is logged in on mount
   useEffect(() => {
