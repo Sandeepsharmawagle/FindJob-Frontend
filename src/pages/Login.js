@@ -14,28 +14,34 @@ const Login = () => {
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError('');
+  e.preventDefault();
+  setLoading(true);
+  setError('');
 
-    const result = await login(email, password);
+  const result = await login(email, password);
+  
+  if (result.success) {
+    // Use the role directly from the response
+    const userRole = result.user.role;
     
-    if (result.success) {
-      if (result.user.role === 'applicant') {
-        navigate('/dashboard/user');
-      } else if (result.user.role === 'employer') {
-        navigate('/dashboard/employer');
-      } else if (result.user.role === 'admin') {
-        navigate('/dashboard/admin');
-      } else {
-        navigate('/');
-      }
+    // Fixed role-based routing
+    if (userRole === 'applicant' || userRole === 'jobseeker') {
+      navigate('/dashboard/jobseeker');  // Changed from /dashboard/user
+    } else if (userRole === 'employer') {
+      navigate('/dashboard/employer');
+    } else if (userRole === 'admin') {
+      navigate('/dashboard/admin');
     } else {
-      setError(result.message);
+      // Fallback if role is undefined or unknown
+      console.error('Unknown role:', userRole);
+      navigate('/');
     }
-    
-    setLoading(false);
-  };
+  } else {
+    setError(result.message || 'Login failed');
+  }
+  
+  setLoading(false);
+};
 
   const features = [
     'Access thousands of job opportunities',
