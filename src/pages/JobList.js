@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import axios from 'axios';
+import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import MainLayout from '../layouts/MainLayout';
 import { Search, MapPin, Briefcase, Building2, Clock, ChevronRight, Filter, TrendingUp, CheckCircle2, X, DollarSign } from 'lucide-react';
@@ -26,12 +26,14 @@ const JobList = () => {
   const fetchJobs = async () => {
     try {
       const endpoint = user ? '/jobs/browse' : '/jobs';
-      const response = await axios.get(endpoint, { withCredentials: true });
+      const response = await api.get(endpoint);
+      console.log('Jobs fetched:', response.data);
       setJobs(response.data);
       setFilteredJobs(response.data);
       setLoading(false);
     } catch (error) {
       console.error('Error fetching jobs:', error);
+      console.error('Error details:', error.response?.data || error.message);
       setLoading(false);
     }
   };
@@ -40,7 +42,7 @@ const JobList = () => {
     e.preventDefault();
     try {
       const endpoint = user ? '/jobs/browse' : '/jobs';
-      const response = await axios.get(`${endpoint}?search=${search}&location=${location}`, { withCredentials: true });
+      const response = await api.get(`${endpoint}?search=${search}&location=${location}`);
       setJobs(response.data);
       setFilteredJobs(response.data);
       applyFilters(response.data);
