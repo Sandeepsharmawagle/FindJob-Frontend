@@ -9,6 +9,24 @@ const api = axios.create({
   }
 });
 
+// Request interceptor to add token to headers
+api.interceptors.request.use(
+  (config) => {
+    // Get token from localStorage
+    const token = localStorage.getItem('token');
+    
+    if (token) {
+      // Add token to Authorization header
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
 // Response interceptor for handling errors
 api.interceptors.response.use(
   (response) => response,
@@ -16,6 +34,11 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       // Handle unauthorized access
       console.error('Unauthorized access - redirecting to login');
+      // Clear invalid token
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Redirect to login
+      window.location.href = '/login';
     }
     return Promise.reject(error);
   }
