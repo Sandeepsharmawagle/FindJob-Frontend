@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api/axios';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import MainLayout from '../layouts/MainLayout';
-import { Briefcase, Calendar, MapPin, Clock, FileText, TrendingUp, CheckCircle, XCircle, AlertCircle, Search, Filter } from 'lucide-react';
+import { Briefcase, Calendar, MapPin, Clock, FileText, TrendingUp, CheckCircle, XCircle, AlertCircle, Search, Filter, Building2, DollarSign, Eye } from 'lucide-react';
 
 const UserDashboard = () => {
   const [applications, setApplications] = useState([]);
   const [filteredApplications, setFilteredApplications] = useState([]);
+  const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const [activeTab, setActiveTab] = useState('browse'); // 'browse' or 'applications'
   const { user, logout } = useAuth();
   const navigate = useNavigate();
 
@@ -22,6 +24,7 @@ const UserDashboard = () => {
     
     const timer = setTimeout(() => {
       fetchApplications();
+      fetchJobs();
     }, 100);
     
     return () => clearTimeout(timer);
@@ -36,31 +39,40 @@ const UserDashboard = () => {
   }, [filterStatus, applications]);
 
   const fetchApplications = async () => {
-  try {
-    setLoading(true);
-    setError('');
-    
-    // Remove withCredentials config - AuthContext handles authentication
-    const response = await axios.get('/applications/');
-    
-    setApplications(response.data);
-    setFilteredApplications(response.data);
-  } catch (error) {
-    console.error('Error fetching applications:', error);
-    
-    if (error.response?.status === 401) {
-      setError('Session expired. Please log in again.');
-      setTimeout(() => {
-        logout();
-        navigate('/login');
-      }, 2000);
-    } else {
-      setError('Failed to fetch applications');
+    try {
+      setLoading(true);
+      setError('');
+      
+      const response = await api.get('/applications/');
+      
+      setApplications(response.data);
+      setFilteredApplications(response.data);
+    } catch (error) {
+      console.error('Error fetching applications:', error);
+      
+      if (error.response?.status === 401) {
+        setError('Session expired. Please log in again.');
+        setTimeout(() => {
+          logout();
+          navigate('/login');
+        }, 2000);
+      } else {
+        setError('Failed to fetch applications');
+      }
+    } finally {
+      setLoading(false);
     }
-  } finally {
-    setLoading(false);
-  }
-};
+  };
+
+  const fetchJobs = async () => {
+    try {
+      const response = await api.get('/jobs/browse');
+      console.log('Jobs fetched:', response.data);
+      setJobs(response.data);
+    } catch (error) {
+      console.error('Error fetching jobs:', error);
+    }
+  };
 
 
   const getStatusColor = (status) => {
@@ -133,15 +145,8 @@ const UserDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <h1 className="text-4xl font-bold mb-2">Welcome back, {user?.name}! 👋</h1>
-                <p className="text-blue-100 text-lg">Track and manage all your job applications in one place</p>
+                <p className="text-blue-100 text-lg">Browse jobs and track all your applications in one place</p>
               </div>
-              <Link
-                to="/jobs"
-                className="hidden md:flex items-center gap-2 bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-all shadow-lg"
-              >
-                <Search className="w-5 h-5" />
-                Find More Jobs
-              </Link>
             </div>
           </div>
         </div>
@@ -164,56 +169,145 @@ const UserDashboard = () => {
           </div>
         </div>
 
-        {/* Applications Section */}
+        {/* Tab Navigation */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-12">
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-            {/* Header with Filter */}
-            <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-6 py-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                  <Briefcase className="w-6 h-6" />
-                  My Applications
-                </h2>
-                <div className="flex items-center gap-2">
-                  <Filter className="w-5 h-5 text-gray-600" />
-                  <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                    className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="all">All Status</option>
-                    <option value="Applied">Applied</option>
-                    <option value="Interview">Interview</option>
-                    <option value="Accepted">Accepted</option>
-                    <option value="Rejected">Rejected</option>
-                  </select>
-                </div>
+            {/* Tabs */}
+            <div className="bg-gradient-to-r from-gray-50 to-blue-50 px-6 border-b border-gray-200">
+              <div className="flex gap-4">
+                <button
+                  onClick={() => setActiveTab('browse')}
+                  className={`px-6 py-4 font-semibold transition-all border-b-4 flex items-center gap-2 ${
+                    activeTab === 'browse'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Search className="w-5 h-5" />
+                  Browse Jobs ({jobs.length})
+                </button>
+                <button
+                  onClick={() => setActiveTab('applications')}
+                  className={`px-6 py-4 font-semibold transition-all border-b-4 flex items-center gap-2 ${
+                    activeTab === 'applications'
+                      ? 'border-blue-600 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  <Briefcase className="w-5 h-5" />
+                  My Applications ({applications.length})
+                </button>
               </div>
             </div>
 
-            {/* Applications List */}
-            {filteredApplications.length === 0 ? (
-              <div className="text-center py-16 px-4">
-                <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                  <Briefcase className="w-12 h-12 text-gray-400" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-800 mb-2">
-                  {filterStatus === 'all' ? "You haven't applied for any jobs yet" : `No ${filterStatus} applications`}
-                </h3>
-                <p className="text-gray-600 mb-8">
-                  {filterStatus === 'all' 
-                    ? 'Start your journey by exploring thousands of job opportunities' 
-                    : 'Try changing the filter to see other applications'}
-                </p>
-                <Link
-                  to="/jobs"
-                  className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-8 py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg transform hover:scale-105"
-                >
-                  <Search className="w-5 h-5" />
-                  Browse Jobs
-                </Link>
+            {/* Browse Jobs Tab */}
+            {activeTab === 'browse' && (
+              <div>
+                {jobs.length === 0 ? (
+                  <div className="text-center py-16 px-4">
+                    <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Search className="w-12 h-12 text-gray-400" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">No jobs available</h3>
+                    <p className="text-gray-600">Check back later for new opportunities</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-6">
+                    {jobs.map((job) => (
+                      <div key={job._id} className="bg-white border-2 border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-blue-300 transition-all">
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex-1">
+                            <h3 className="text-xl font-bold text-gray-800 mb-2">{job.title}</h3>
+                            <p className="text-gray-600 font-medium flex items-center gap-2 mb-2">
+                              <Building2 className="w-4 h-4" />
+                              {job.company}
+                            </p>
+                            <div className="flex flex-wrap gap-3 text-sm text-gray-500 mb-3">
+                              <span className="flex items-center gap-1">
+                                <MapPin className="w-4 h-4" />
+                                {job.location}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <DollarSign className="w-4 h-4" />
+                                ${job.salary?.toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                          {job.hasApplied && (
+                            <span className="flex items-center gap-1 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+                              <CheckCircle className="w-4 h-4" /> Applied
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-gray-600 text-sm mb-4 line-clamp-2">{job.description}</p>
+                        <div className="flex gap-3">
+                          <Link
+                            to={`/jobs/${job._id}`}
+                            className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-all"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Details
+                          </Link>
+                          {!job.hasApplied && (
+                            <Link
+                              to={`/apply/${job._id}`}
+                              className="flex-1 flex items-center justify-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-all"
+                            >
+                              Apply Now
+                            </Link>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ) : (
+            )}
+
+            {/* My Applications Tab */}
+            {activeTab === 'applications' && (
+              <div>
+                {/* Filter Section */}
+                <div className="bg-gray-50 px-6 py-4 border-b border-gray-200">
+                  <div className="flex items-center gap-2">
+                    <Filter className="w-5 h-5 text-gray-600" />
+                    <select
+                      value={filterStatus}
+                      onChange={(e) => setFilterStatus(e.target.value)}
+                      className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="all">All Status</option>
+                      <option value="Applied">Applied</option>
+                      <option value="Interview">Interview</option>
+                      <option value="Accepted">Accepted</option>
+                      <option value="Rejected">Rejected</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Applications List */}
+                {filteredApplications.length === 0 ? (
+                  <div className="text-center py-16 px-4">
+                    <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                      <Briefcase className="w-12 h-12 text-gray-400" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">
+                      {filterStatus === 'all' ? "You haven't applied for any jobs yet" : `No ${filterStatus} applications`}
+                    </h3>
+                    <p className="text-gray-600 mb-8">
+                      {filterStatus === 'all' 
+                        ? 'Switch to Browse Jobs tab to explore opportunities' 
+                        : 'Try changing the filter to see other applications'}
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('browse')}
+                      className="inline-flex items-center gap-2 bg-gradient-to-r from-blue-600 to-cyan-600 text-white px-8 py-4 rounded-lg font-semibold hover:from-blue-700 hover:to-cyan-700 transition-all shadow-lg transform hover:scale-105"
+                    >
+                      <Search className="w-5 h-5" />
+                      Browse Jobs
+                    </button>
+                  </div>
+                ) : (
               <div className="divide-y divide-gray-200">
                 {filteredApplications.map((application) => (
                   <div key={application._id} className="p-6 hover:bg-gray-50 transition-all">
@@ -276,6 +370,8 @@ const UserDashboard = () => {
                     )}
                   </div>
                 ))}
+                </div>
+              )}
               </div>
             )}
           </div>
